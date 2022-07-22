@@ -14,6 +14,7 @@ namespace NlsDemo.Dependancy
         {
             #region Service
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<ISystemUserService, SystemUserService>();
             #endregion
 
             return services;

@@ -22,5 +22,6 @@ namespace NlsDemo.data.dbcontext
         }
 
         public DbSet<MovieCatalog> MovieCatalogs { get; set; }
+        public DbSet<SystemUser> SystemUsers { get; set; }
     }
 }

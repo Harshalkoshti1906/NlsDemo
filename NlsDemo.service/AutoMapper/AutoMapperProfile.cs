@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using NlsDemo.data.Entity;
+using NlsDemo.service.ViewModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +13,8 @@ namespace NlsDemo.service.AutoMapper
     {
         public AutoMapperProfile()
         {
+            CreateMap<MovieCatalog, MovieCatalogViewModel>().ReverseMap();
+            CreateMap<SystemUser, SystemUserViewModel>().ReverseMap();
         }
     }
 }
