@@ -15,6 +15,7 @@ namespace NlsDemo.Dependancy
             #region Service
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<ISystemUserService, SystemUserService>();
+            services.AddScoped<IMovieCatalogService, MovieCatalogService>();
             #endregion
 
             return services;

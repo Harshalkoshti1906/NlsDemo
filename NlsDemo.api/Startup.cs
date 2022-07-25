@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TestAppService.JwtAuth;
 
 namespace NlsDemo.api
 {
@@ -57,27 +58,30 @@ namespace NlsDemo.api
 
             services.RegisterServiceDependencies();
 
-            services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
+            #region JWT Auth
 
-           // Adding Jwt Bearer
-           .AddJwtBearer(options =>
-           {
-               options.SaveToken = true;
-               options.RequireHttpsMetadata = false;
-               options.TokenValidationParameters = new TokenValidationParameters()
-               {
-                   ValidateIssuer = true,
-                   ValidateAudience = true,
-                   ValidAudience = Configuration["JWT:ValidAudience"],
-                   ValidIssuer = Configuration["JWT:ValidIssuer"],
-                   IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["JWT:Secret"]))
-               };
-           });
+            var key = Configuration.GetSection("JWT").GetSection("Secret").Value;
+            services.AddSingleton<IJwtAuthneticationManager>(new JwtAuthneticationManager(key));
+
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                };
+            });
+            #endregion
+
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -91,9 +95,11 @@ namespace NlsDemo.api
             }
 
             app.UseHttpsRedirection();
+            app.UseHttpsRedirection();
 
             app.UseRouting();
 
+            app.UseAuthorization();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

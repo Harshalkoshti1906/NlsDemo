@@ -12,23 +12,29 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using TestAppService.JwtAuth;
 
 namespace NlsDemo.service.Service
 {
-    public class UserService:IUserService
+    public class UserService : IUserService
     {
         #region Properties
         private readonly UserManager<IdentityUser> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IConfiguration _configuration;
+        IJwtAuthneticationManager _jwtAuthneticationManager;
         #endregion
 
         #region Constructor
-        public UserService(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        public UserService(UserManager<IdentityUser> userManager, 
+                           RoleManager<IdentityRole> roleManager, 
+                           IConfiguration configuration,
+                           IJwtAuthneticationManager jwtAuthneticationManager)
         {
             this.userManager = userManager;
             this.roleManager = roleManager;
             _configuration = configuration;
+            _jwtAuthneticationManager = jwtAuthneticationManager;
         }
         #endregion
 
@@ -41,36 +47,14 @@ namespace NlsDemo.service.Service
                 var user = await userManager.FindByNameAsync(loginModel.Username);
                 if (user != null && await userManager.CheckPasswordAsync(user, loginModel.Password))
                 {
-                    var userRoles = await userManager.GetRolesAsync(user);
-                    var authClaims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                };
-
-                    foreach (var userRole in userRoles)
-                    {
-                        authClaims.Add(new Claim(ClaimTypes.Role, userRole));
-                    }
-
-                    var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
-
-                    var token = new JwtSecurityToken(
-                        issuer: _configuration["JWT:ValidIssuer"],
-                        audience: _configuration["JWT:ValidAudience"],
-                        expires: DateTime.Now.AddHours(3),
-                        claims: authClaims,
-                        signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-                        );
+                    string token = _jwtAuthneticationManager.Authenticate(user.UserName, user.PasswordHash);
 
                     response.IsSuccess = true;
                     response.Status = Convert.ToInt32(EnumManager.Status.Success);
                     response.Message = Message.Success;
                     response.Data = new
                     {
-                        token = new JwtSecurityTokenHandler().WriteToken(token),
-                        expiration = token.ValidTo
-
+                        token = token,
                     };
 
                 }
@@ -104,7 +88,7 @@ namespace NlsDemo.service.Service
                     response.Message = Message.AlreadyExists;
                     return response;
                 }
-               
+
                 IdentityUser user = new IdentityUser()
                 {
                     Email = model.Email,
@@ -165,7 +149,7 @@ namespace NlsDemo.service.Service
 
                 if (!await roleManager.RoleExistsAsync(UserRoles.Admin))
                     await roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
-               
+
                 if (await roleManager.RoleExistsAsync(UserRoles.Admin))
                 {
                     await userManager.AddToRoleAsync(user, UserRoles.Admin);
