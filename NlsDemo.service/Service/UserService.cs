@@ -13,6 +13,8 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using TestAppService.JwtAuth;
+using AutoMapper;
+using NlsDemo.data.dbcontext;
 
 namespace NlsDemo.service.Service
 {
@@ -23,18 +25,23 @@ namespace NlsDemo.service.Service
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IConfiguration _configuration;
         IJwtAuthneticationManager _jwtAuthneticationManager;
+        private readonly IMapper _mapper;
+        private readonly DatabaseContext _db;
         #endregion
 
         #region Constructor
         public UserService(UserManager<IdentityUser> userManager, 
                            RoleManager<IdentityRole> roleManager, 
                            IConfiguration configuration,
-                           IJwtAuthneticationManager jwtAuthneticationManager)
+                           IJwtAuthneticationManager jwtAuthneticationManager,
+                           IMapper mapper, DatabaseContext db)
         {
             this.userManager = userManager;
             this.roleManager = roleManager;
             _configuration = configuration;
             _jwtAuthneticationManager = jwtAuthneticationManager;
+            _mapper = mapper;
+            _db = db;
         }
         #endregion
 
@@ -42,12 +49,17 @@ namespace NlsDemo.service.Service
         public async Task<ResponseViewModel> Login(LoginViewModel loginModel)
         {
             ResponseViewModel response = new ResponseViewModel();
+            SystemUserViewModel userViewModel = new SystemUserViewModel();
             try
             {
                 var user = await userManager.FindByNameAsync(loginModel.Username);
                 if (user != null && await userManager.CheckPasswordAsync(user, loginModel.Password))
                 {
                     string token = _jwtAuthneticationManager.Authenticate(user.UserName, user.PasswordHash);
+                    var userModel = _db.SystemUsers.FirstOrDefault(a => a.Email.ToLower().Equals(user.Email.ToLower()));
+
+                    userViewModel = _mapper.Map<SystemUserViewModel>(userModel);
+                    userViewModel.Password = "";
 
                     response.IsSuccess = true;
                     response.Status = Convert.ToInt32(EnumManager.Status.Success);
@@ -55,6 +67,7 @@ namespace NlsDemo.service.Service
                     response.Data = new
                     {
                         token = token,
+                        User = userViewModel
                     };
 
                 }

@@ -20,12 +20,8 @@ namespace NlsDemo.service.ViewModel
         public string Email { get; set; }
         public string ContactNo { get; set; }
 
-        [Required(ErrorMessage = "Password is required")]
+        //[Required(ErrorMessage = "Password is required")]
         public string Password { get; set; }
-        public int? CreatedBy { get; set; }
-        public DateTime? CreatedDate { get; set; }
-        public int? UpdatedBy { get; set; }
-        public DateTime? UpdatedDate { get; set; }
 
     }
 }
