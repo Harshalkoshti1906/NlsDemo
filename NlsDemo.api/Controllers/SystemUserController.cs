@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace NlsDemo.api.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class SystemUserController : ControllerBase

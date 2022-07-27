@@ -35,6 +35,36 @@ namespace NlsDemo.api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddControllersWithViews();
+
+            #region JWT Auth
+
+            var key = Configuration.GetSection("JWT").GetSection("Secret").Value;
+            var issuer = Configuration.GetSection("JWT").GetSection("ValidIssuer").Value;
+
+            services.AddSingleton<IJwtAuthneticationManager>(new JwtAuthneticationManager(key));
+
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = issuer,
+                    ValidAudience = issuer,
+                };
+            });
+            services.RegisterServiceDependencies();
+            #endregion
+
+
             var mappingConfig = new MapperConfiguration(mc =>
             {
                 mc.AddProfile(new AutoMapperProfile());
@@ -56,31 +86,9 @@ namespace NlsDemo.api
                 .AddEntityFrameworkStores<data.dbcontext.DatabaseContext>()
                 .AddDefaultTokenProviders();
 
-            services.RegisterServiceDependencies();
+            
 
-            #region JWT Auth
-
-            var key = Configuration.GetSection("JWT").GetSection("Secret").Value;
-            services.AddSingleton<IJwtAuthneticationManager>(new JwtAuthneticationManager(key));
-
-            services.AddAuthentication(x =>
-            {
-                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(x =>
-            {
-                x.RequireHttpsMetadata = false;
-                x.SaveToken = true;
-                x.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                };
-            });
-            #endregion
-
+          
 
         }
 
@@ -107,7 +115,7 @@ namespace NlsDemo.api
 
             app.UseRouting();
 
-            app.UseAuthorization();
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
